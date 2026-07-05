@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: satya1027/api-gateway:v1
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8080
+
+        env:
+        - name: USER_SERVICE_URL
+          value: http://user-service:8081
+
+        - name: PRODUCT_SERVICE_URL
+          value: http://product-service:8082
+
+        - name: ORDER_SERVICE_URL
+          value: http://order-service:8083
+
+        - name: PAYMENT_SERVICE_URL
+          value: http://payment-service:8084
+
+        - name: NOTIFICATION_SERVICE_URL
+          value: http://notification-service:8085
