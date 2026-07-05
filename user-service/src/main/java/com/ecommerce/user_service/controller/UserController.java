@@ -1,10 +1,12 @@
 package com.ecommerce.user_service.controller;
 
+import com.ecommerce.user_service.dto.UserRegistrationRequest;
+import com.ecommerce.user_service.dto.UserResponse;
 import com.ecommerce.user_service.service.UserService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/users")
 public class UserController {
 
     private final UserService userService;
@@ -13,8 +15,8 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/register")
-    public String register() {
-        return userService.register();
+    @PostMapping("/register")
+    public UserResponse register(@RequestBody UserRegistrationRequest request) {
+        return userService.register(request);
     }
 }

@@ -1,7 +1,9 @@
 package com.ecommerce.user_service.service;
 
+import com.ecommerce.user_service.dto.UserRegistrationRequest;
+import com.ecommerce.user_service.dto.UserResponse;
+
 public interface UserService {
 
-    String register();
-
+    UserResponse register(UserRegistrationRequest request);
 }
