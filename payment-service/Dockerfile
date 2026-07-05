@@ -1,13 +1,9 @@
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY . .
-
-RUN chmod +x mvnw
-
-RUN ./mvnw clean package -DskipTests
+COPY target/payment-service-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8084
 
-ENTRYPOINT ["java","-jar","target/payment-service-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]
