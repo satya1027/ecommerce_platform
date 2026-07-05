@@ -40,4 +40,19 @@ public class ProductServiceImpl implements ProductService {
                 savedProduct.getQuantity()
         );
     }
+
+    @Override
+    public ProductResponse getProductById(Long id) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        return new ProductResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getQuantity()
+        );
+    }
 }

@@ -7,4 +7,5 @@ public interface ProductService {
 
     ProductResponse addProduct(ProductRequest request);
 
+    ProductResponse getProductById(Long id);
 }
