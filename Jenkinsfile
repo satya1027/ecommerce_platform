@@ -8,6 +8,7 @@ pipeline {
 
     environment {
         DOCKER_USERNAME = "satya1027"
+        SCANNER_HOME = tool 'sonar-scanner'
     }
 
     stages {
@@ -18,51 +19,90 @@ pipeline {
             }
         }
 
-        stage('Build User Service') {
+        stage('Build Microservices') {
             steps {
-                dir('user-service') {
-                    sh './mvnw clean package -DskipTests'
+                sh '''
+                cd user-service && ./mvnw clean package -DskipTests && cd ..
+
+                cd product-service && ./mvnw clean package -DskipTests && cd ..
+
+                cd order-service && ./mvnw clean package -DskipTests && cd ..
+
+                cd payment-service && ./mvnw clean package -DskipTests && cd ..
+
+                cd notification-service && ./mvnw clean package -DskipTests && cd ..
+
+                cd api-gateway && ./mvnw clean package -DskipTests && cd ..
+                '''
+            }
+        }
+
+        stage('SonarQube Scan') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+
+                    sh '''
+                    cd user-service
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=user-service \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                    cd ..
+
+                    cd product-service
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=product-service \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                    cd ..
+
+                    cd order-service
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=order-service \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                    cd ..
+
+                    cd payment-service
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=payment-service \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                    cd ..
+
+                    cd notification-service
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=notification-service \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                    cd ..
+
+                    cd api-gateway
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=api-gateway \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                    cd ..
+                    '''
                 }
             }
         }
 
-        stage('Build Product Service') {
+        stage('Quality Gate') {
             steps {
-                dir('product-service') {
-                    sh './mvnw clean package -DskipTests'
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        stage('Build Order Service') {
+        stage('Trivy File System Scan') {
             steps {
-                dir('order-service') {
-                    sh './mvnw clean package -DskipTests'
-                }
-            }
-        }
-
-        stage('Build Payment Service') {
-            steps {
-                dir('payment-service') {
-                    sh './mvnw clean package -DskipTests'
-                }
-            }
-        }
-
-        stage('Build Notification Service') {
-            steps {
-                dir('notification-service') {
-                    sh './mvnw clean package -DskipTests'
-                }
-            }
-        }
-
-        stage('Build API Gateway') {
-            steps {
-                dir('api-gateway') {
-                    sh './mvnw clean package -DskipTests'
-                }
+                sh '''
+                trivy fs . \
+                --severity HIGH,CRITICAL \
+                --exit-code 0
+                '''
             }
         }
 
@@ -79,9 +119,23 @@ pipeline {
             }
         }
 
-        stage('Push Images to Docker Hub') {
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                trivy image satya1027/user-service:v1 --severity HIGH,CRITICAL --exit-code 0
+                trivy image satya1027/product-service:v1 --severity HIGH,CRITICAL --exit-code 0
+                trivy image satya1027/order-service:v1 --severity HIGH,CRITICAL --exit-code 0
+                trivy image satya1027/payment-service:v1 --severity HIGH,CRITICAL --exit-code 0
+                trivy image satya1027/notification-service:v1 --severity HIGH,CRITICAL --exit-code 0
+                trivy image satya1027/api-gateway:v1 --severity HIGH,CRITICAL --exit-code 0
+                '''
+            }
+        }
+
+        stage('Push Docker Images') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+
                     sh '''
                     echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
 
@@ -97,15 +151,24 @@ pipeline {
                 }
             }
         }
+
+        stage('Cleanup') {
+            steps {
+                sh '''
+                docker image prune -f
+                '''
+            }
+        }
     }
 
     post {
+
         success {
-            echo 'Pipeline executed successfully!'
+            echo 'Pipeline Executed Successfully'
         }
 
         failure {
-            echo 'Pipeline failed!'
+            echo 'Pipeline Failed'
         }
     }
 }
